@@ -1,9 +1,9 @@
 import streamlit as st
 import random
 import io
-from copy import deepcopy
+import time
 
-# ─── Page Config ───────────────────────────────────────────────────────────────
+# ─── Page config (MUST be first Streamlit call) ────────────────────────────────
 st.set_page_config(
     page_title="🎉 Bingo Builder for Kids",
     page_icon="🎱",
@@ -11,150 +11,198 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# ─── CSS ───────────────────────────────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════════════════════
+#  GLOBAL CSS
+# ══════════════════════════════════════════════════════════════════════════════
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&family=Fredoka+One&display=swap');
 
-    html, body, [class*="css"] {
-        font-family: 'Nunito', sans-serif;
-    }
+html, body, [class*="css"] { font-family: 'Nunito', sans-serif; }
+.main { background: linear-gradient(135deg, #f0f4ff 0%, #fdf0ff 100%); }
 
-    .main { background: #f0f4ff; }
+/* ── App title ── */
+.app-title {
+    text-align: center;
+    font-family: 'Fredoka One', cursive;
+    font-size: 3rem;
+    background: linear-gradient(90deg, #ff6b6b, #ffd93d, #6bcb77, #4d96ff, #c77dff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 0;
+}
+.app-sub { text-align:center; color:#888; font-size:1.05rem; margin-top:0; }
 
-    h1 { color: #5c35d9; text-align: center; font-size: 2.8rem !important; }
-    h2 { color: #5c35d9; }
+/* ── Tabs ── */
+.stTabs [data-baseweb="tab-list"] {
+    gap: 10px; background: #e8e0ff; border-radius: 18px; padding: 6px;
+}
+.stTabs [data-baseweb="tab"] {
+    background: white; border-radius: 14px; font-weight: 700;
+    font-size: 1.05rem; color: #5c35d9; padding: 10px 28px;
+}
+.stTabs [aria-selected="true"] {
+    background: linear-gradient(135deg,#5c35d9,#9b59b6) !important;
+    color: white !important;
+}
 
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 12px;
-        background: #e8e0ff;
-        border-radius: 16px;
-        padding: 6px;
-    }
-    .stTabs [data-baseweb="tab"] {
-        background: white;
-        border-radius: 12px;
-        font-weight: 700;
-        font-size: 1.1rem;
-        color: #5c35d9;
-        padding: 10px 24px;
-    }
-    .stTabs [aria-selected="true"] {
-        background: #5c35d9 !important;
-        color: white !important;
-    }
+/* ── Settings panel ── */
+.settings-box {
+    background: white; border-radius: 22px; padding: 22px; margin-bottom: 18px;
+    box-shadow: 0 4px 20px rgba(92,53,217,0.12); border: 2px solid #e8e0ff;
+}
 
-    .bingo-card {
-        background: white;
-        border-radius: 20px;
-        padding: 12px;
-        margin: 8px;
-        box-shadow: 0 4px 16px rgba(92,53,217,0.15);
-        border: 3px solid #c9b8ff;
-    }
-    .bingo-title {
-        text-align: center;
-        font-weight: 900;
-        font-size: 1.1rem;
-        color: #5c35d9;
-        margin-bottom: 8px;
-        letter-spacing: 2px;
-    }
-    .bingo-cell {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 12px;
-        font-weight: 700;
-        text-align: center;
-        word-break: break-word;
-        border: 2px solid #e8e0ff;
-        padding: 4px;
-    }
-    .free-cell {
-        background: linear-gradient(135deg, #ffd6e7, #ffecb3) !important;
-        border: 2px solid #ffb3c6 !important;
-        color: #c0392b !important;
-        font-size: 0.75rem !important;
-    }
+/* ── Bingo card preview ── */
+.bingo-card {
+    background: white; border-radius: 22px; padding: 14px; margin: 8px;
+    box-shadow: 0 6px 20px rgba(92,53,217,0.13); border: 3px solid #c9b8ff;
+}
+.bingo-card-title {
+    text-align: center; font-family: 'Fredoka One', cursive;
+    font-size: 1.2rem; color: #5c35d9; margin-bottom: 10px; letter-spacing:1px;
+}
 
-    .stButton > button {
-        border-radius: 14px;
-        font-weight: 700;
-        font-size: 1rem;
-        padding: 8px 20px;
-        border: none;
-        transition: all 0.2s;
-    }
-    .stButton > button:hover { transform: scale(1.04); }
+/* ── Buttons ── */
+.stButton > button {
+    border-radius: 16px; font-weight: 700; font-size: 1rem;
+    padding: 9px 22px; border: none; transition: all 0.2s;
+}
+.stButton > button:hover { transform: scale(1.05); box-shadow: 0 4px 14px rgba(0,0,0,0.15); }
 
-    .template-btn > button {
-        background: #e8f4fd !important;
-        color: #1a73e8 !important;
-        border: 2px solid #93c6f4 !important;
-    }
+/* ── Error box ── */
+.error-box {
+    background: #ffe0e0; border: 2px solid #ffb3b3; border-radius: 14px;
+    padding: 14px 20px; color: #c0392b; font-weight: 700; margin: 10px 0;
+}
 
-    .caller-display {
-        background: linear-gradient(135deg, #667eea, #764ba2);
-        border-radius: 24px;
-        padding: 30px;
-        text-align: center;
-        color: white;
-        font-size: 3rem;
-        font-weight: 900;
-        margin: 16px 0;
-        box-shadow: 0 8px 32px rgba(102,126,234,0.4);
-        animation: pop 0.3s ease;
-    }
-    @keyframes pop {
-        0% { transform: scale(0.8); opacity: 0; }
-        100% { transform: scale(1); opacity: 1; }
-    }
+/* ── History chips ── */
+.history-chip {
+    display: inline-block; background: #e8e0ff; color: #5c35d9;
+    border-radius: 22px; padding: 5px 14px; margin: 3px;
+    font-weight: 700; font-size: 0.88rem;
+}
 
-    .history-chip {
-        display: inline-block;
-        background: #e8e0ff;
-        color: #5c35d9;
-        border-radius: 20px;
-        padding: 4px 12px;
-        margin: 3px;
-        font-weight: 700;
-        font-size: 0.85rem;
-    }
+/* ══════════════════════════════════════════════════════════════════════════
+   PLAY CALLER ANIMATIONS
+   ══════════════════════════════════════════════════════════════════════════ */
+@keyframes bgShift {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+@keyframes popIn {
+    0%   { transform: scale(0.4) rotate(-8deg); opacity: 0; }
+    60%  { transform: scale(1.15) rotate(3deg); opacity: 1; }
+    80%  { transform: scale(0.95) rotate(-1deg); }
+    100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    30%       { transform: translateY(-12px); }
+    60%       { transform: translateY(-5px); }
+}
 
-    .error-box {
-        background: #ffe0e0;
-        border: 2px solid #ffb3b3;
-        border-radius: 12px;
-        padding: 12px 18px;
-        color: #c0392b;
-        font-weight: 700;
-    }
-
-    .settings-box {
-        background: white;
-        border-radius: 20px;
-        padding: 20px;
-        margin-bottom: 16px;
-        box-shadow: 0 2px 12px rgba(92,53,217,0.1);
-        border: 2px solid #e8e0ff;
-    }
+.caller-wrapper {
+    background: linear-gradient(270deg, #ff6b6b, #ffd93d, #6bcb77, #4d96ff, #c77dff, #ff6b6b);
+    background-size: 400% 400%;
+    animation: bgShift 6s ease infinite;
+    border-radius: 28px;
+    padding: 14px;
+    margin: 16px 0;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.18);
+}
+.caller-inner {
+    background: rgba(255,255,255,0.15);
+    border-radius: 20px;
+    padding: 30px 20px;
+    text-align: center;
+}
+.caller-number {
+    font-family: 'Fredoka One', cursive;
+    font-size: 7rem;
+    color: white;
+    text-shadow: 3px 4px 0 rgba(0,0,0,0.18);
+    line-height: 1;
+    animation: popIn 0.55s cubic-bezier(.36,.07,.19,.97) both;
+    display: block;
+}
+.caller-label {
+    font-size: 1.2rem; color: rgba(255,255,255,0.9); font-weight: 700;
+    margin-top: 8px; letter-spacing:1px;
+    animation: bounce 1.2s ease 0.6s 2;
+    display: inline-block;
+}
+.caller-idle {
+    font-family: 'Fredoka One', cursive;
+    font-size: 2.5rem; color: rgba(255,255,255,0.6);
+    text-align: center; padding: 40px 0;
+}
+.progress-bar-outer {
+    background: rgba(255,255,255,0.3); border-radius: 20px;
+    height: 14px; margin: 14px 0 4px;
+    overflow: hidden;
+}
+.progress-bar-inner {
+    height: 14px; border-radius: 20px;
+    background: white;
+    transition: width 0.5s ease;
+}
+.auto-indicator {
+    display: inline-block; background: #ff6b6b; color: white;
+    border-radius: 20px; padding: 4px 14px; font-weight: 700;
+    font-size: 0.85rem; margin-left: 8px; animation: bounce 1s ease infinite;
+}
 </style>
 """, unsafe_allow_html=True)
 
-# ─── Templates ─────────────────────────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════════════════════
+#  CONSTANTS & TEMPLATES
+# ══════════════════════════════════════════════════════════════════════════════
+
 TEMPLATES = {
-    "Numbers 1–20": [str(i) for i in range(1, 21)],
-    "Numbers 1–50": [str(i) for i in range(1, 51)],
-    "Colors": ["Red","Blue","Green","Yellow","Orange","Purple","Pink","Brown",
-               "Black","White","Gray","Cyan","Magenta","Lime","Indigo","Violet",
-               "Gold","Silver","Beige","Teal","Maroon","Navy","Olive","Coral","Salmon"],
-    "Basic Vocab": ["Apple","Ball","Cat","Dog","Egg","Fish","Girl","Hat","Ice","Jump",
-                    "King","Lamp","Moon","Nest","Open","Play","Queen","Rain","Sun","Tree",
-                    "Under","Van","Wind","Box","Year","Zoo","Ant","Bee","Cup","Door"],
+    "Numbers 1-20":  [str(i) for i in range(1, 21)],
+    "Numbers 1-50":  [str(i) for i in range(1, 51)],
+    "Colors":        ["Red","Blue","Green","Yellow","Orange","Purple","Pink","Brown",
+                      "Black","White","Gray","Cyan","Lime","Indigo","Violet",
+                      "Gold","Silver","Teal","Coral","Salmon","Peach","Mint",
+                      "Lavender","Crimson","Sky Blue"],
+    "Basic Vocab":   ["Apple","Ball","Cat","Dog","Egg","Fish","Girl","Hat","Ice","Jump",
+                      "King","Lamp","Moon","Nest","Open","Play","Queen","Rain","Sun","Tree",
+                      "Under","Van","Wind","Box","Year","Zoo","Ant","Bee","Cup","Door"],
 }
 
-# ─── Fisher-Yates Shuffle ───────────────────────────────────────────────────────
+# Bright kid-friendly cell colors (color mode)
+CELL_PALETTE = [
+    "#FF6B6B","#FF9F43","#FFEAA7","#A8E6CF","#81ECEC",
+    "#74B9FF","#A29BFE","#FD79A8","#FDCB6E","#55EFC4",
+    "#E17055","#0984E3","#6C5CE7","#00CEC9","#E84393",
+]
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  SESSION STATE INIT
+# ══════════════════════════════════════════════════════════════════════════════
+_defaults = {
+    "cards": None,
+    "grid_size": 5,
+    "items": [],
+    "words_input": "",
+    "error_msg": None,
+    "caller_pool": [],
+    "caller_history": [],
+    "caller_current": None,
+    "caller_mode": "manual",
+    "auto_running": False,
+    "auto_last_tick": 0.0,
+}
+for k, v in _defaults.items():
+    if k not in st.session_state:
+        st.session_state[k] = v
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  UTILITY FUNCTIONS
+# ══════════════════════════════════════════════════════════════════════════════
+
 def fisher_yates_shuffle(lst):
     arr = list(lst)
     for i in range(len(arr) - 1, 0, -1):
@@ -162,392 +210,628 @@ def fisher_yates_shuffle(lst):
         arr[i], arr[j] = arr[j], arr[i]
     return arr
 
-# ─── Generate Cards ─────────────────────────────────────────────────────────────
+
 def generate_cards(items, grid_size, num_cards, free_space):
-    cards = []
     total_cells = grid_size * grid_size
     needed = total_cells - (1 if free_space else 0)
-
     if len(items) < needed:
-        return None, f"❌ Not enough items! You need at least **{needed}** unique items for a {grid_size}×{grid_size} grid (you have {len(items)})."
-
+        return None, (
+            f"Not enough items! You need at least **{needed}** unique items "
+            f"for a {grid_size}x{grid_size} grid (you have {len(items)})."
+        )
     free_pos = (grid_size // 2) * grid_size + (grid_size // 2) if free_space else -1
-
+    cards = []
     for _ in range(num_cards):
         shuffled = fisher_yates_shuffle(items)[:needed]
-        card = []
-        item_idx = 0
+        card, item_idx = [], 0
         for cell in range(total_cells):
             if cell == free_pos:
-                card.append("⭐ FREE")
+                card.append("FREE")
             else:
                 card.append(shuffled[item_idx])
                 item_idx += 1
         cards.append(card)
-
     return cards, None
 
-# ─── Render Single Card as HTML ─────────────────────────────────────────────────
-CELL_COLORS = [
-    "#ffecd2","#d4f8e8","#dce8ff","#ffe8f4","#f3e8ff",
-    "#fff9db","#e8fff3","#ffe8e8","#e8f4ff","#f9ffe8",
-]
 
-def render_card_html(card, grid_size, card_num):
-    cell_size = max(40, min(80, 280 // grid_size))
-    font_size = max(0.6, min(1.1, cell_size / 65))
+# ══════════════════════════════════════════════════════════════════════════════
+#  HTML CARD PREVIEW (in-app)
+# ══════════════════════════════════════════════════════════════════════════════
+
+def render_card_html(card, grid_size, card_num, bw_mode):
+    cell_size = max(42, min(82, 300 // grid_size))
+    font_size = max(0.65, min(1.2, cell_size / 62))
     rows_html = ""
     for r in range(grid_size):
         row_html = "<tr>"
         for c in range(grid_size):
             idx = r * grid_size + c
             val = card[idx]
-            color = CELL_COLORS[(r * grid_size + c) % len(CELL_COLORS)]
-            extra_class = "free-cell" if val == "⭐ FREE" else ""
-            if val != "⭐ FREE":
-                style = f"background:{color};"
+            is_free = val == "FREE"
+            if bw_mode:
+                bg = "#111" if is_free else ("white" if (r + c) % 2 == 0 else "#f0f0f0")
+                txt_color = "white" if is_free else "#111"
+                border = "3px solid #111"
             else:
-                style = "background:linear-gradient(135deg,#ffd6e7,#ffecb3);"
+                bg = "linear-gradient(135deg,#ffd6e7,#ffecb3)" if is_free \
+                     else CELL_PALETTE[idx % len(CELL_PALETTE)]
+                txt_color = "#c0392b" if is_free else "white"
+                border = "3px solid rgba(255,255,255,0.6)"
+
+            display_val = ("★ FREE ★" if is_free else val)
             row_html += (
-                f'<td style="width:{cell_size}px;height:{cell_size}px;{style}'
-                f'border-radius:10px;border:2px solid #e8e0ff;text-align:center;'
-                f'vertical-align:middle;font-size:{font_size}rem;font-weight:700;'
-                f'color:#333;padding:3px;word-break:break-word;" class="{extra_class}">'
-                f'{val}</td>'
+                f'<td style="width:{cell_size}px;height:{cell_size}px;background:{bg};'
+                f'border-radius:12px;border:{border};text-align:center;'
+                f'vertical-align:middle;font-size:{font_size}rem;font-weight:900;'
+                f'color:{txt_color};padding:4px;word-break:break-word;'
+                f'font-family:Fredoka One,Nunito,sans-serif;">{display_val}</td>'
             )
         row_html += "</tr>"
         rows_html += row_html
 
+    card_bg = "#222" if bw_mode else "white"
+    title_color = "white" if bw_mode else "#5c35d9"
     return f"""
-    <div class="bingo-card">
-        <div class="bingo-title">🎱 BINGO – Card #{card_num}</div>
-        <table style="border-collapse:separate;border-spacing:4px;margin:auto;">
+    <div class="bingo-card" style="background:{card_bg};">
+        <div class="bingo-card-title" style="color:{title_color};">
+            🎱 BINGO &mdash; Card #{card_num}
+        </div>
+        <table style="border-collapse:separate;border-spacing:5px;margin:auto;">
             {rows_html}
         </table>
-    </div>
-    """
+    </div>"""
 
-# ─── PDF Generation ─────────────────────────────────────────────────────────────
-def generate_pdf(cards, grid_size):
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  PDF GENERATION  (reportlab.platypus – 2 cards per A4 page)
+# ══════════════════════════════════════════════════════════════════════════════
+
+def generate_pdf(cards, grid_size, bw_mode):
+    """Returns (pdf_bytes, error_string). error_string is None on success."""
     try:
         from reportlab.lib.pagesizes import A4
         from reportlab.lib import colors
-        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
-        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
         from reportlab.lib.units import mm
+        from reportlab.platypus import (
+            SimpleDocTemplate, Table, TableStyle,
+            Paragraph, Spacer, KeepTogether
+        )
+        from reportlab.lib.styles import ParagraphStyle
+        from reportlab.lib.enums import TA_CENTER
 
         buf = io.BytesIO()
-        doc = SimpleDocTemplate(buf, pagesize=A4,
-                                 leftMargin=15*mm, rightMargin=15*mm,
-                                 topMargin=15*mm, bottomMargin=15*mm)
-        styles = getSampleStyleSheet()
-        title_style = ParagraphStyle('title', fontName='Helvetica-Bold',
-                                      fontSize=14, textColor=colors.HexColor('#5c35d9'),
-                                      alignment=1, spaceAfter=6)
-        story = []
-        cell_w = (A4[0] - 30*mm) / grid_size
-        cell_h = min(cell_w, (A4[1] - 50*mm) / grid_size)
+        PAGE_W, PAGE_H = A4
+        MARGIN = 12 * mm
 
-        pastel = [
-            colors.HexColor('#ffecd2'), colors.HexColor('#d4f8e8'),
-            colors.HexColor('#dce8ff'), colors.HexColor('#ffe8f4'),
-            colors.HexColor('#f3e8ff'), colors.HexColor('#fff9db'),
-            colors.HexColor('#e8fff3'), colors.HexColor('#ffe8e8'),
+        doc = SimpleDocTemplate(
+            buf, pagesize=A4,
+            leftMargin=MARGIN, rightMargin=MARGIN,
+            topMargin=MARGIN, bottomMargin=MARGIN,
+        )
+
+        # ── Computed dimensions ──────────────────────────────────────────────
+        usable_w = PAGE_W - 2 * MARGIN
+        col_w    = usable_w / grid_size
+        # Each half-page minus title + cut-line space
+        half_h   = (PAGE_H - 2 * MARGIN - 20 * mm) / 2
+        row_h    = min((half_h - 14 * mm) / grid_size, col_w * 0.88)
+
+        # ── Styles ───────────────────────────────────────────────────────────
+        title_color = colors.HexColor("#111111" if bw_mode else "#5c35d9")
+        title_style = ParagraphStyle(
+            "CardTitle",
+            fontName="Helvetica-Bold", fontSize=16,
+            textColor=title_color, alignment=TA_CENTER,
+            spaceAfter=3 * mm, spaceBefore=2 * mm,
+        )
+        cut_style = ParagraphStyle(
+            "CutLine",
+            fontName="Helvetica", fontSize=7,
+            textColor=colors.HexColor("#aaaaaa"),
+            alignment=TA_CENTER,
+            spaceAfter=5 * mm, spaceBefore=5 * mm,
+        )
+
+        PDF_COLORS = [
+            "#FF6B6B","#FF9F43","#FFEAA7","#A8E6CF","#81ECEC",
+            "#74B9FF","#A29BFE","#FD79A8","#FDCB6E","#55EFC4",
+            "#E17055","#0984E3","#6C5CE7","#00CEC9","#E84393",
         ]
 
-        for i, card in enumerate(cards):
-            story.append(Paragraph(f"🎱 BINGO – Card #{i+1}", title_style))
-            table_data = []
+        # ── Card table builder ───────────────────────────────────────────────
+        def make_card_table(card):
+            data = []
+            ts_cmds = [
+                ("ALIGN",    (0,0), (-1,-1), "CENTER"),
+                ("VALIGN",   (0,0), (-1,-1), "MIDDLE"),
+                ("LEFTPADDING",   (0,0), (-1,-1), 3),
+                ("RIGHTPADDING",  (0,0), (-1,-1), 3),
+                ("TOPPADDING",    (0,0), (-1,-1), 3),
+                ("BOTTOMPADDING", (0,0), (-1,-1), 3),
+            ]
             for r in range(grid_size):
                 row = []
                 for c in range(grid_size):
-                    val = card[r * grid_size + c]
-                    row.append(Paragraph(val, ParagraphStyle('cell',
-                        fontName='Helvetica-Bold', fontSize=max(7, 14 - grid_size),
-                        alignment=1, leading=12)))
-                table_data.append(row)
+                    idx  = r * grid_size + c
+                    val  = card[idx]
+                    is_free = val == "FREE"
+                    display_val = "FREE" if is_free else val
 
-            col_widths = [cell_w] * grid_size
-            row_heights = [cell_h] * grid_size
-            t = Table(table_data, colWidths=col_widths, rowHeights=row_heights)
+                    # Choose text color
+                    if bw_mode:
+                        if is_free:
+                            txt_c = colors.white
+                        elif (r + c) % 2 == 0:
+                            txt_c = colors.black
+                        else:
+                            txt_c = colors.black
+                    else:
+                        txt_c = colors.HexColor("#c0392b") if is_free else colors.white
 
-            ts = TableStyle([
-                ('ALIGN', (0,0), (-1,-1), 'CENTER'),
-                ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-                ('GRID', (0,0), (-1,-1), 1, colors.HexColor('#c9b8ff')),
-                ('ROUNDEDCORNERS', [8]),
-                ('ROWBACKGROUNDS', (0,0), (-1,-1), pastel),
-            ])
-            # Color FREE cell
-            for r in range(grid_size):
-                for c in range(grid_size):
-                    if card[r * grid_size + c] == "⭐ FREE":
-                        ts.add('BACKGROUND', (c,r), (c,r), colors.HexColor('#ffd6e7'))
-            t.setStyle(ts)
-            story.append(t)
-            story.append(Spacer(1, 6*mm))
-            if i < len(cards) - 1 and (i + 1) % 2 == 0:
-                story.append(PageBreak())
-            elif i < len(cards) - 1:
-                story.append(Spacer(1, 4*mm))
+                    cell_fs = max(7, 14 - grid_size)
+                    p_style = ParagraphStyle(
+                        f"cs{idx}",
+                        fontName="Helvetica-Bold",
+                        fontSize=cell_fs,
+                        textColor=txt_c,
+                        alignment=TA_CENTER,
+                        leading=cell_fs + 4,
+                    )
+                    row.append(Paragraph(display_val, p_style))
+
+                    # Cell background
+                    if bw_mode:
+                        bg = colors.HexColor("#111111") if is_free \
+                             else (colors.white if (r+c) % 2 == 0 else colors.HexColor("#e0e0e0"))
+                    else:
+                        bg = colors.HexColor("#ffeaa7") if is_free \
+                             else colors.HexColor(PDF_COLORS[idx % len(PDF_COLORS)])
+
+                    ts_cmds.append(("BACKGROUND", (c,r), (c,r), bg))
+
+                data.append(row)
+
+            grid_color = colors.black if bw_mode else colors.white
+            ts_cmds.append(("GRID", (0,0), (-1,-1), 1.5, grid_color))
+
+            t = Table(
+                data,
+                colWidths=[col_w] * grid_size,
+                rowHeights=[row_h] * grid_size,
+            )
+            t.setStyle(TableStyle(ts_cmds))
+            return t
+
+        # ── Build story ──────────────────────────────────────────────────────
+        story = []
+        cut_text = (
+            "  ✂  - - - - - - - - - - - - - - - - - - - - - "
+            "cut here"
+            " - - - - - - - - - - - - - - - - - - - - - ✂  "
+        )
+
+        for i, card in enumerate(cards):
+            title = Paragraph(f"✦  BINGO  —  Card #{i + 1}  ✦", title_style)
+            tbl   = make_card_table(card)
+            block = KeepTogether([title, tbl])
+            story.append(block)
+
+            is_last = (i == len(cards) - 1)
+            is_first_of_pair = (i % 2 == 0)
+
+            if not is_last and is_first_of_pair:
+                # Dashed cut line between the two cards on the same page
+                story.append(Paragraph(cut_text, cut_style))
+            elif not is_last and not is_first_of_pair:
+                # After second card → small spacer (page break is handled by platypus)
+                story.append(Spacer(1, 4 * mm))
 
         doc.build(story)
         buf.seek(0)
         return buf.getvalue(), None
-    except ImportError:
-        return None, "reportlab not installed"
 
-def generate_html_pdf(cards, grid_size):
-    """Fallback: generate printable HTML."""
-    pastel = ["#ffecd2","#d4f8e8","#dce8ff","#ffe8f4","#f3e8ff","#fff9db"]
+    except ImportError as exc:
+        return None, f"reportlab not installed: {exc}"
+    except Exception as exc:
+        return None, str(exc)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  PRINTABLE HTML FALLBACK
+# ══════════════════════════════════════════════════════════════════════════════
+
+def generate_html(cards, grid_size, bw_mode):
     cards_html = ""
     for i, card in enumerate(cards):
-        cell_size = max(50, min(90, 400 // grid_size))
-        font_size = max(10, min(18, cell_size // 4))
+        cell_size = max(55, min(95, 420 // grid_size))
+        font_size = max(11, min(22, cell_size // 4))
         rows = ""
         for r in range(grid_size):
             rows += "<tr>"
             for c in range(grid_size):
-                val = card[r * grid_size + c]
-                color = "#ffd6e7" if val == "⭐ FREE" else pastel[(r*grid_size+c) % len(pastel)]
-                rows += f'<td style="width:{cell_size}px;height:{cell_size}px;background:{color};border:2px solid #c9b8ff;border-radius:8px;text-align:center;vertical-align:middle;font-size:{font_size}px;font-weight:700;word-break:break-word;">{val}</td>'
+                idx = r * grid_size + c
+                val = card[idx]
+                is_free = val == "FREE"
+                display_val = "FREE" if is_free else val
+                if bw_mode:
+                    bg = "#111" if is_free else ("white" if (r+c)%2==0 else "#e8e8e8")
+                    col = "white" if is_free else "#111"
+                    bdr = "2px solid #111"
+                else:
+                    bg = "linear-gradient(135deg,#ffd6e7,#ffecb3)" if is_free \
+                         else CELL_PALETTE[idx % len(CELL_PALETTE)]
+                    col = "#c0392b" if is_free else "white"
+                    bdr = "2px solid rgba(255,255,255,0.5)"
+                rows += (
+                    f'<td style="width:{cell_size}px;height:{cell_size}px;background:{bg};'
+                    f'border-radius:12px;border:{bdr};text-align:center;vertical-align:middle;'
+                    f'font-size:{font_size}px;font-weight:900;color:{col};'
+                    f'word-break:break-word;font-family:Fredoka One,Arial,sans-serif;">'
+                    f'{display_val}</td>'
+                )
             rows += "</tr>"
-        if i > 0 and i % 2 == 0:
-            cards_html += '<div style="page-break-before:always;"></div>'
-        cards_html += f"""
-        <div style="display:inline-block;margin:16px;vertical-align:top;">
-            <div style="font-family:Arial,sans-serif;font-weight:900;font-size:18px;color:#5c35d9;text-align:center;margin-bottom:8px;">🎱 BINGO – Card #{i+1}</div>
-            <table style="border-collapse:separate;border-spacing:4px;">{rows}</table>
-        </div>"""
 
+        page_break = '<div style="page-break-before:always;"></div>' \
+                     if i > 0 and i % 2 == 0 else ""
+        cut = (
+            '<div style="text-align:center;color:#aaa;font-size:11px;'
+            'margin:10px 0;letter-spacing:2px;">'
+            '&#9986; &mdash; &mdash; &mdash; &mdash; &mdash; &mdash; '
+            '&mdash; &mdash; cut here &mdash; &mdash; &mdash; &mdash; '
+            '&mdash; &mdash; &mdash; &mdash; &#9986;</div>'
+        ) if i % 2 == 0 and i < len(cards) - 1 else ""
+
+        title_color = "white" if bw_mode else "#5c35d9"
+        cards_html += f"""
+        {page_break}
+        <div style="text-align:center;font-family:'Fredoka One',Arial,sans-serif;
+                    font-size:22px;color:{title_color};margin:14px 0 8px;">
+            ✦ BINGO &mdash; Card #{i + 1} ✦
+        </div>
+        <div style="text-align:center;">
+            <table style="border-collapse:separate;border-spacing:5px;display:inline-table;">
+                {rows}
+            </table>
+        </div>
+        {cut}"""
+
+    bg_body = "#222" if bw_mode else "#f0f4ff"
     return f"""<!DOCTYPE html>
-<html><head><title>Bingo Cards</title>
+<html><head>
+<meta charset="utf-8">
+<title>Bingo Cards</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
 <style>
-  body {{ font-family: Arial, sans-serif; background: white; }}
-  @media print {{ button {{ display: none; }} }}
-</style></head>
-<body>
-<div style="text-align:center;margin-bottom:16px;">
-  <button onclick="window.print()" style="background:#5c35d9;color:white;border:none;border-radius:12px;padding:10px 24px;font-size:16px;font-weight:700;cursor:pointer;">🖨️ Print Cards</button>
+  body {{ background:{bg_body}; font-family:'Fredoka One',Arial,sans-serif; margin:20px; }}
+  @media print {{ .no-print {{ display:none; }} body {{ margin:10mm; background:white; }} }}
+</style>
+</head><body>
+<div class="no-print" style="text-align:center;margin-bottom:20px;">
+  <button onclick="window.print()"
+    style="background:#5c35d9;color:white;border:none;border-radius:14px;
+           padding:12px 28px;font-size:17px;font-weight:700;cursor:pointer;">
+    Print Cards
+  </button>
 </div>
 {cards_html}
 </body></html>"""
 
-# ─── Session State Init ─────────────────────────────────────────────────────────
-for key, default in [
-    ("cards", None),
-    ("items", []),
-    ("words_input", ""),
-    ("caller_pool", []),
-    ("caller_history", []),
-    ("caller_current", None),
-    ("error_msg", None),
-    ("active_tab", 0),
-]:
-    if key not in st.session_state:
-        st.session_state[key] = default
 
-# ─── Header ────────────────────────────────────────────────────────────────────
-st.markdown("<h1>🎉 Bingo Builder for Kids</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align:center;color:#888;font-size:1.1rem;'>Create fun bingo cards for your classroom in seconds!</p>", unsafe_allow_html=True)
+# ══════════════════════════════════════════════════════════════════════════════
+#  APP HEADER
+# ══════════════════════════════════════════════════════════════════════════════
+st.markdown('<h1 class="app-title">🎉 Bingo Builder for Kids 🎱</h1>', unsafe_allow_html=True)
+st.markdown(
+    '<p class="app-sub">Create magical bingo cards for your classroom in seconds!</p>',
+    unsafe_allow_html=True,
+)
+st.markdown("<br>", unsafe_allow_html=True)
 
-# ─── Tabs ───────────────────────────────────────────────────────────────────────
-tab_words, tab_numbers = st.tabs(["🔤 Words Mode", "🔢 Numbers Mode"])
+# ══════════════════════════════════════════════════════════════════════════════
+#  MAIN TABS
+# ══════════════════════════════════════════════════════════════════════════════
+tab_create, tab_caller = st.tabs(["🃏  Create Bingo Sheets", "🎡  Play Caller"])
 
-with tab_words:
-    if st.session_state.active_tab != 0:
-        st.session_state.error_msg = None
-        st.session_state.active_tab = 0
 
-    st.markdown("### Quick Templates")
-    t_cols = st.columns(4)
-    for idx, (label, vals) in enumerate(TEMPLATES.items()):
-        with t_cols[idx]:
-            with st.container():
-                st.markdown('<div class="template-btn">', unsafe_allow_html=True)
-                if st.button(f"📋 {label}", key=f"tpl_{idx}"):
+# ══════════════════════════════════════════════════════════════════════════════
+#  TAB 1: CREATE BINGO SHEETS
+# ══════════════════════════════════════════════════════════════════════════════
+with tab_create:
+
+    # ── Input mode sub-tabs ──────────────────────────────────────────────────
+    inp_words, inp_numbers = st.tabs(["🔤 Words Mode", "🔢 Numbers Mode"])
+
+    with inp_words:
+        st.markdown("#### Quick Templates")
+        t_cols = st.columns(4)
+        for idx, (label, vals) in enumerate(TEMPLATES.items()):
+            with t_cols[idx]:
+                if st.button(f"📋 {label}", key=f"tpl_{idx}", use_container_width=True):
                     st.session_state.words_input = ", ".join(vals)
                     st.session_state.error_msg = None
-                st.markdown('</div>', unsafe_allow_html=True)
 
-    words_raw = st.text_area(
-        "Enter your words (comma or newline separated):",
-        value=st.session_state.words_input,
-        height=150,
-        placeholder="apple, banana, cat, dog...\nor one per line",
-        key="words_textarea"
+        words_raw = st.text_area(
+            "Enter your words (comma or newline separated):",
+            value=st.session_state.words_input,
+            height=140,
+            placeholder="apple, banana, cat, dog…\nor one per line",
+            key="words_textarea",
+        )
+        st.session_state.words_input = words_raw
+        raw_parts = [
+            w.strip()
+            for part in words_raw.replace("\n", ",").split(",")
+            for w in [part.strip()] if w
+        ]
+        words_items = list(dict.fromkeys(filter(None, raw_parts)))
+        st.caption(f"✅ {len(words_items)} unique words detected")
+
+    with inp_numbers:
+        nc1, nc2 = st.columns(2)
+        with nc1:
+            num_start = st.number_input("Start number:", value=1, min_value=0,
+                                         max_value=9999, key="num_start")
+        with nc2:
+            num_end = st.number_input("End number:", value=50, min_value=1,
+                                       max_value=9999, key="num_end")
+        if int(num_end) > int(num_start):
+            num_items = [str(i) for i in range(int(num_start), int(num_end) + 1)]
+            st.caption(f"✅ {len(num_items)} numbers ({int(num_start)}–{int(num_end)})")
+        else:
+            num_items = []
+            st.warning("End must be greater than Start.")
+
+    # ── Active mode selector ─────────────────────────────────────────────────
+    mode_sel = st.radio(
+        "Active input mode:",
+        ["🔤 Words Mode", "🔢 Numbers Mode"],
+        horizontal=True,
+        label_visibility="collapsed",
     )
-    st.session_state.words_input = words_raw
+    active_items = words_items if "Words" in mode_sel else num_items
 
-    # Parse words
-    raw_items = [w.strip() for part in words_raw.replace("\n", ",").split(",") for w in [part.strip()] if w]
-    words_items = list(dict.fromkeys(filter(None, raw_items)))
-    st.caption(f"✅ {len(words_items)} unique words detected")
-    current_items = words_items
-    mode = "words"
+    st.markdown("---")
 
-with tab_numbers:
-    if st.session_state.active_tab != 1:
-        st.session_state.error_msg = None
-        st.session_state.active_tab = 1
-
-    nc1, nc2 = st.columns(2)
-    with nc1:
-        num_start = st.number_input("Start number:", value=1, min_value=0, max_value=9999, key="num_start")
-    with nc2:
-        num_end = st.number_input("End number:", value=50, min_value=1, max_value=9999, key="num_end")
-
-    if num_end > num_start:
-        num_items = [str(i) for i in range(int(num_start), int(num_end) + 1)]
-        st.caption(f"✅ {len(num_items)} numbers ({int(num_start)}–{int(num_end)})")
-    else:
-        num_items = []
-        st.warning("End must be greater than Start.")
-    current_items = num_items
-    mode = "numbers"
-
-# We need to pick items based on which tab is active
-# Use a workaround with a radio hidden selector
-st.markdown("---")
-
-# ─── Settings ───────────────────────────────────────────────────────────────────
-st.markdown("### ⚙️ Bingo Settings")
-st.markdown('<div class="settings-box">', unsafe_allow_html=True)
-
-scol1, scol2, scol3 = st.columns(3)
-with scol1:
-    grid_size = st.selectbox("Grid Size:", [3, 4, 5, 6, 7, 8],
-                              index=2, format_func=lambda x: f"{x}×{x}")
-with scol2:
-    num_cards = st.slider("Number of Cards:", min_value=10, max_value=15, value=10)
-with scol3:
-    if grid_size >= 5:
-        free_space = st.toggle("⭐ FREE SPACE (center)", value=True)
-    else:
-        free_space = False
-        st.info("FREE SPACE available for 5×5+")
-
-st.markdown('</div>', unsafe_allow_html=True)
-
-# ─── Determine Active Items ─────────────────────────────────────────────────────
-# We use a mode selector since tabs run in parallel
-mode_sel = st.radio("Select input mode:", ["🔤 Words Mode", "🔢 Numbers Mode"],
-                     horizontal=True, label_visibility="collapsed")
-if "Words" in mode_sel:
-    active_items = words_items
-else:
-    active_items = num_items
-
-# ─── Generate Button ────────────────────────────────────────────────────────────
-gen_col, _ = st.columns([2, 5])
-with gen_col:
-    if st.button("🎲 Generate Bingo Cards!", type="primary", use_container_width=True):
-        st.session_state.error_msg = None
-        cards, err = generate_cards(active_items, grid_size, num_cards, free_space)
-        if err:
-            st.session_state.error_msg = err
-            st.session_state.cards = None
+    # ── Bingo Settings ───────────────────────────────────────────────────────
+    st.markdown("### ⚙️ Bingo Settings")
+    sc1, sc2, sc3, sc4 = st.columns([2, 2, 2, 2])
+    with sc1:
+        grid_size = st.selectbox(
+            "Grid Size", [3, 4, 5, 6, 7, 8],
+            index=2, format_func=lambda x: f"{x}x{x}", key="grid_sel",
+        )
+    with sc2:
+        num_cards = st.slider("Number of Cards", 10, 15, 10)
+    with sc3:
+        if grid_size >= 5:
+            free_space = st.toggle("FREE SPACE (center)", value=True)
         else:
-            st.session_state.cards = cards
-            st.session_state.items = active_items
-            st.session_state.caller_pool = fisher_yates_shuffle(active_items)
-            st.session_state.caller_history = []
-            st.session_state.caller_current = None
+            free_space = False
+            st.info("FREE SPACE: 5x5+ only")
+    with sc4:
+        bw_mode = st.toggle("Black & White Mode", value=False)
 
-if st.session_state.error_msg:
-    st.markdown(f'<div class="error-box">{st.session_state.error_msg}</div>', unsafe_allow_html=True)
+    # ── Generate ─────────────────────────────────────────────────────────────
+    g_col, _ = st.columns([2, 5])
+    with g_col:
+        if st.button("🎲 Generate Bingo Cards!", type="primary", use_container_width=True):
+            st.session_state.error_msg = None
+            cards, err = generate_cards(active_items, grid_size, num_cards, free_space)
+            if err:
+                st.session_state.error_msg = err
+                st.session_state.cards = None
+            else:
+                st.session_state.cards       = cards
+                st.session_state.grid_size   = grid_size
+                st.session_state.items       = list(active_items)
+                st.session_state.caller_pool = fisher_yates_shuffle(active_items)
+                st.session_state.caller_history = []
+                st.session_state.caller_current = None
+                st.session_state.auto_running   = False
 
-# ─── Display Cards ──────────────────────────────────────────────────────────────
-if st.session_state.cards:
-    cards = st.session_state.cards
-    st.markdown(f"---\n### 🃏 Your {len(cards)} Bingo Cards")
+    if st.session_state.error_msg:
+        st.markdown(
+            f'<div class="error-box">❌ {st.session_state.error_msg}</div>',
+            unsafe_allow_html=True,
+        )
 
-    cols_per_row = 2 if grid_size <= 5 else 1
-    for row_start in range(0, len(cards), cols_per_row):
-        cols = st.columns(cols_per_row)
-        for ci, card_idx in enumerate(range(row_start, min(row_start + cols_per_row, len(cards)))):
-            with cols[ci]:
-                st.markdown(render_card_html(cards[card_idx], grid_size, card_idx + 1),
-                            unsafe_allow_html=True)
+    # ── Display Cards ────────────────────────────────────────────────────────
+    if st.session_state.cards:
+        cards = st.session_state.cards
+        gs    = st.session_state.grid_size
+        st.markdown(f"### 🃏 Your {len(cards)} Bingo Cards")
 
-    # ─── Download PDF ───────────────────────────────────────────────────────────
-    st.markdown("---\n### 💾 Download")
-    dl1, dl2 = st.columns(2)
+        cols_per_row = 2 if gs <= 5 else 1
+        for row_start in range(0, len(cards), cols_per_row):
+            cols = st.columns(cols_per_row)
+            for ci, card_idx in enumerate(
+                range(row_start, min(row_start + cols_per_row, len(cards)))
+            ):
+                with cols[ci]:
+                    st.markdown(
+                        render_card_html(cards[card_idx], gs, card_idx + 1, bw_mode),
+                        unsafe_allow_html=True,
+                    )
 
-    with dl1:
-        pdf_bytes, err = generate_pdf(cards, grid_size)
-        if pdf_bytes:
+        # ── Downloads ────────────────────────────────────────────────────────
+        st.markdown("---\n### 💾 Download")
+        dl1, dl2 = st.columns(2)
+
+        with dl1:
+            pdf_bytes, pdf_err = generate_pdf(cards, gs, bw_mode)
+            if pdf_bytes:
+                st.download_button(
+                    label="📥 Download PDF (2 cards per page)",
+                    data=pdf_bytes,
+                    file_name="bingo_cards.pdf",
+                    mime="application/pdf",
+                    use_container_width=True,
+                )
+            else:
+                st.caption(f"⚠️ PDF unavailable ({pdf_err}). Use HTML below.")
+
+        with dl2:
+            html_bytes = generate_html(cards, gs, bw_mode).encode("utf-8")
             st.download_button(
-                label="📥 Download PDF",
-                data=pdf_bytes,
-                file_name="bingo_cards.pdf",
-                mime="application/pdf",
-                use_container_width=True,
-            )
-        else:
-            # Fallback to HTML
-            html_content = generate_html_pdf(cards, grid_size)
-            st.download_button(
-                label="📥 Download Printable HTML",
-                data=html_content.encode(),
+                label="🖨️ Download Printable HTML",
+                data=html_bytes,
                 file_name="bingo_cards.html",
                 mime="text/html",
                 use_container_width=True,
             )
-            if err:
-                st.caption(f"(PDF unavailable: {err} — HTML provided instead)")
 
-    with dl2:
-        html_content = generate_html_pdf(cards, grid_size)
-        st.download_button(
-            label="🖨️ Download Printable HTML",
-            data=html_content.encode(),
-            file_name="bingo_cards.html",
-            mime="text/html",
-            use_container_width=True,
+        if bw_mode:
+            st.info("⬛ Black & White mode is active — PDF and HTML will print in high-contrast B&W.")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  TAB 2: PLAY CALLER
+# ══════════════════════════════════════════════════════════════════════════════
+with tab_caller:
+
+    if not st.session_state.items:
+        st.info(
+            "👆 Go to **Create Bingo Sheets**, generate your cards first, "
+            "then come back here to play!"
         )
+        st.stop()
 
-    # ─── Play Caller ────────────────────────────────────────────────────────────
-    st.markdown("---\n### 🎡 Play Caller")
+    pool      = st.session_state.caller_pool
+    history   = st.session_state.caller_history
+    current   = st.session_state.caller_current
+    remaining = [x for x in pool if x not in set(history)]
+    total     = len(pool)
+    called    = len(history)
+    pct       = int(called / total * 100) if total else 0
 
-    pool = st.session_state.caller_pool
-    history = st.session_state.caller_history
-    remaining = [x for x in pool if x not in history]
+    # ── Mode selector + controls row ─────────────────────────────────────────
+    st.markdown("#### 🎮 Caller Mode")
+    mode_col, speed_col, reset_col = st.columns([3, 3, 2])
 
-    cal1, cal2, cal3 = st.columns([2, 2, 3])
-    with cal1:
-        if st.button("🎡 Call Next Item!", use_container_width=True, disabled=len(remaining) == 0):
-            if remaining:
+    with mode_col:
+        caller_mode = st.radio(
+            "Mode", ["Manual", "Auto"],
+            horizontal=True,
+            index=0 if st.session_state.caller_mode == "manual" else 1,
+            label_visibility="collapsed",
+        )
+        st.session_state.caller_mode = caller_mode.lower()
+
+    auto_interval = 3
+    if st.session_state.caller_mode == "auto":
+        with speed_col:
+            auto_interval = st.slider("Call every (seconds)", 1, 10, 3)
+
+    with reset_col:
+        if st.button("🔄 Reset All", use_container_width=True):
+            st.session_state.caller_pool    = fisher_yates_shuffle(st.session_state.items)
+            st.session_state.caller_history = []
+            st.session_state.caller_current = None
+            st.session_state.auto_running   = False
+            st.rerun()
+
+    st.markdown("---")
+
+    # ── Animated caller display ──────────────────────────────────────────────
+    if current:
+        display_html = f"""
+        <div class="caller-wrapper">
+          <div class="caller-inner">
+            <span class="caller-number">{current}</span>
+            <div class="caller-label">✨ Called! ✨</div>
+            <div class="progress-bar-outer">
+              <div class="progress-bar-inner" style="width:{pct}%;"></div>
+            </div>
+            <div style="color:rgba(255,255,255,0.85);font-size:1rem;
+                        font-weight:700;margin-top:6px;">
+              {called} / {total} called
+            </div>
+          </div>
+        </div>"""
+    else:
+        display_html = """
+        <div class="caller-wrapper">
+          <div class="caller-inner">
+            <div class="caller-idle">Press ▶ to start calling!</div>
+          </div>
+        </div>"""
+
+    st.markdown(display_html, unsafe_allow_html=True)
+
+    # ── Action buttons ───────────────────────────────────────────────────────
+    all_done = len(remaining) == 0 and called > 0
+
+    if st.session_state.caller_mode == "manual":
+        btn_col, _ = st.columns([2, 5])
+        with btn_col:
+            if st.button(
+                "▶ Next Item", type="primary",
+                use_container_width=True,
+                disabled=(len(remaining) == 0),
+            ):
                 pick = remaining[random.randint(0, len(remaining) - 1)]
                 st.session_state.caller_current = pick
                 st.session_state.caller_history.append(pick)
-    with cal2:
-        if st.button("🔄 Reset Caller", use_container_width=True):
-            st.session_state.caller_pool = fisher_yates_shuffle(st.session_state.items)
-            st.session_state.caller_history = []
-            st.session_state.caller_current = None
+                st.rerun()
 
-    with cal3:
-        total = len(pool)
-        called = len(history)
-        st.metric("Progress", f"{called} / {total}", delta=f"{total - called} remaining")
+    else:
+        # Auto mode: Start / Pause
+        ac1, ac2, _ = st.columns([2, 2, 4])
+        with ac1:
+            if not st.session_state.auto_running:
+                if st.button(
+                    "▶ Start Auto", type="primary",
+                    use_container_width=True,
+                    disabled=(len(remaining) == 0),
+                ):
+                    st.session_state.auto_running   = True
+                    st.session_state.auto_last_tick = time.time()
+                    st.rerun()
+            else:
+                if st.button("⏸ Pause", use_container_width=True):
+                    st.session_state.auto_running = False
+                    st.rerun()
+        with ac2:
+            if st.session_state.auto_running:
+                st.markdown(
+                    '<span class="auto-indicator">● LIVE</span>',
+                    unsafe_allow_html=True,
+                )
 
-    if st.session_state.caller_current:
-        st.markdown(
-            f'<div class="caller-display">🎱 {st.session_state.caller_current}</div>',
-            unsafe_allow_html=True,
-        )
-    elif len(remaining) == 0 and history:
-        st.success("🎉 All items have been called! Reset to play again.")
+    if all_done:
+        st.success("🎉 All items have been called! Press **Reset All** to play again.")
+        st.session_state.auto_running = False
 
+    # ── Auto-advance ticker ───────────────────────────────────────────────────
+    if st.session_state.auto_running and remaining:
+        elapsed = time.time() - st.session_state.auto_last_tick
+        if elapsed >= auto_interval:
+            pick = remaining[random.randint(0, len(remaining) - 1)]
+            st.session_state.caller_current = pick
+            st.session_state.caller_history.append(pick)
+            st.session_state.auto_last_tick = time.time()
+            time.sleep(0.05)
+            st.rerun()
+        else:
+            # Sleep until next tick (max 1 s to stay responsive to pause)
+            time.sleep(min(auto_interval - elapsed, 1.0))
+            st.rerun()
+
+    # ── Call history ─────────────────────────────────────────────────────────
     if history:
-        st.markdown("**📜 Call History:**")
-        chips = " ".join(f'<span class="history-chip">{item}</span>' for item in history)
+        st.markdown("---\n**📜 Call History** (most recent first):")
+        chips = " ".join(
+            f'<span class="history-chip">{item}</span>'
+            for item in reversed(history)
+        )
         st.markdown(chips, unsafe_allow_html=True)
 
-# ─── Footer ────────────────────────────────────────────────────────────────────
+
+# ── Footer ─────────────────────────────────────────────────────────────────────
 st.markdown("---")
 st.markdown(
-    "<p style='text-align:center;color:#aaa;font-size:0.85rem;'>🎉 Bingo Builder for Kids – Made with ❤️ using Streamlit</p>",
+    "<p style='text-align:center;color:#bbb;font-size:0.82rem;'>"
+    "🎉 Bingo Builder for Kids &mdash; Made with ❤️ using Streamlit &amp; reportlab"
+    "</p>",
     unsafe_allow_html=True,
 )
